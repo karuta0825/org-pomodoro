@@ -490,16 +490,23 @@ invokes the handlers for finishing."
                       0))
       (org-pomodoro-maybe-play-sound :tick))))
 
-(defun org-pomodoro-set (state)
+(defun org-pomodoro-set (state &optional pomodoro-time)
   "Set the org-pomodoro STATE."
+  (unless pomodoro-time (setq pomodoro-time org-pomodoro-length))
   (setq org-pomodoro-state state
         org-pomodoro-end-time
         (cl-case state
-          (:pomodoro (time-add (current-time) (* 60 org-pomodoro-length)))
+          (:pomodoro (time-add (current-time) (* 60 pomodoro-time)))
           (:overtime (current-time))
           (:short-break (time-add (current-time) (* 60 org-pomodoro-short-break-length)))
           (:long-break (time-add (current-time) (* 60 org-pomodoro-long-break-length))))
         org-pomodoro-timer (run-with-timer t 1 'org-pomodoro-tick)))
+
+(defun org-pomodoro-time-string-to-minutes (time-string)
+  (let* ((time-list (parse-time-string time-string))
+         (hours (nth 2 time-list))
+         (minutes (nth 1 time-list)))
+    (+ (* hours 60) minutes)))
 
 (defun org-pomodoro-start (&optional state)
   "Start the `org-pomodoro` timer.
@@ -512,7 +519,12 @@ The argument STATE is optional.  The default state is `:pomodoro`."
     (setq global-mode-string (append global-mode-string
                                      '(org-pomodoro-mode-line))))
 
-  (org-pomodoro-set (or state :pomodoro))
+  (if-let ((pomo-time (save-excursion
+                        (unless (org-at-heading-p)
+                          (outline-previous-heading))
+                        (org-element-property :EFFORT (org-element-at-point)))))
+      (org-pomodoro-set (or state :pomodoro) (org-pomodoro-time-string-to-minutes pomo-time))
+    (org-pomodoro-set (or state :pomodoro)))
 
   (when (eq org-pomodoro-state :pomodoro)
     (org-pomodoro-maybe-play-sound :start)
