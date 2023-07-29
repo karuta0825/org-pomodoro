@@ -411,18 +411,18 @@ or :break when starting a break.")
   (let ((sound (org-pomodoro-sound type))
         (args (org-pomodoro-sound-args type)))
     (cond ((and (fboundp 'sound-wav-play)
-		org-pomodoro-play-sounds
-		sound)
-	   (sound-wav-play sound))
-	  ((and org-pomodoro-audio-player
-		org-pomodoro-play-sounds
-		sound)
-	   (start-process-shell-command
-	    "org-pomodoro-audio-player" nil
-	    (mapconcat 'identity
-		       `(,org-pomodoro-audio-player
-			 ,@(delq nil (list args (shell-quote-argument (expand-file-name sound)))))
-		       " "))))))
+    org-pomodoro-play-sounds
+    sound)
+     (sound-wav-play sound))
+    ((and org-pomodoro-audio-player
+    org-pomodoro-play-sounds
+    sound)
+     (start-process-shell-command
+      "org-pomodoro-audio-player" nil
+      (mapconcat 'identity
+           `(,org-pomodoro-audio-player
+       ,@(delq nil (list args (shell-quote-argument (expand-file-name sound)))))
+           " "))))))
 
 (defun org-pomodoro-maybe-play-sound (type)
   "Play an audio file specified by TYPE."
@@ -503,6 +503,7 @@ invokes the handlers for finishing."
         org-pomodoro-timer (run-with-timer t 1 'org-pomodoro-tick)))
 
 (defun org-pomodoro-time-string-to-minutes (time-string)
+  "Compute minutes from TIME-STRING."
   (let* ((time-list (parse-time-string time-string))
          (hours (nth 2 time-list))
          (minutes (nth 1 time-list)))
@@ -519,10 +520,7 @@ The argument STATE is optional.  The default state is `:pomodoro`."
     (setq global-mode-string (append global-mode-string
                                      '(org-pomodoro-mode-line))))
 
-  (if-let ((pomo-time (save-excursion
-                        (unless (org-at-heading-p)
-                          (outline-previous-heading))
-                        (org-element-property :EFFORT (org-element-at-point)))))
+  (if-let ((pomo-time (completing-read "時間: " (org-property-get-allowed-values nil org-effort-property t) nil t)))
       (org-pomodoro-set (or state :pomodoro) (org-pomodoro-time-string-to-minutes pomo-time))
     (org-pomodoro-set (or state :pomodoro)))
 
